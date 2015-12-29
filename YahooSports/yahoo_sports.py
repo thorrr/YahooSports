@@ -81,12 +81,8 @@ class YahooSession(object):
             data={'oauth_callback': "oob"})
         pin = get_pin_from_user_interaction(request_token, yahoo_oauth_service)
 
-        def get_auth_session(oauthService, request_token, request_token_secret, pin):
-            return oauthService.get_auth_session(request_token, request_token_secret, method='POST',
-                                                 data={'oauth_verifier': pin})
-
-        self.session = get_auth_session(
-            yahoo_oauth_service, request_token, request_token_secret, pin)
+        self.session = yahoo_oauth_service.get_auth_session(
+            request_token, request_token_secret, method='POST', data={'oauth_verifier': pin})
 
     def save_session(self, auth_filename):
         assert self.session
