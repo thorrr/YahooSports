@@ -1,9 +1,21 @@
 Yahoo Sports API
 ================
 
-Uses the rauth library to interact with the Yahoo Sports Fantasy Football API.
+Use the rauth library to interact with the Yahoo Sports Fantasy Football API.
 
-Usage:
+Register your app:
+
+https://developer.yahoo.com/apps/create
+
+Verify your app's settings match consumer_secret and consumer_key in auth_keys.txt:
+
+![My Apps Screenshot](apps status.png?raw=true "My Apps Screenshot")
+
+Verify your app has permissions to the "Fantasy Sports" data API
+
+![My Apps Screenshot](create a project.png?raw=true "My Apps Screenshot")
+
+Usage in Python:
 
     from YahooSports.yahoo_sports import YahooSession
     session = YahooSession(auth_filename="auth_keys.txt")
