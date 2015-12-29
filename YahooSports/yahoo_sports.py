@@ -94,7 +94,7 @@ class YahooSession(object):
         with open(auth_filename, 'w') as f:
             f.write("consumer_secret: {}\n".format(self.consumer_secret))
             f.write("consumer_key: {}\n".format(self.consumer_key))
-            f.write("session_file: {}\n".format(pickle_file_name))
+            f.write("auth_session_file: {}\n".format(pickle_file_name))
 
     def isLiveSession(self):
         response = self.session.get("http://fantasysports.yahooapis.com/fantasy/v2/game/223")
