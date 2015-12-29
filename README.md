@@ -33,10 +33,17 @@ auth_keys.txt format
     consumer_key: bnDS4RZd8mgeYJndVPBgr6gG2t6yuawMbnDS4RZd8mgeYJndVPBgr6gG2t6yuawMbnDS4RZd8mgeYJndVPBgr6gG2t--
 
 
-If the YahooSession constructor is called with auth_filename the
-session object will be pickled and stored in a temporary file, pointed
-to in auth_filename.  Subsequent constructions of YahooSession will
-attempt to use the pickled session or create a new one if stale.
+If the YahooSession constructor is called with an auth_filename
+argument the generated rauth.session.OAuth1Session object will be
+pickled and stored in a temporary file, pointed to by
+auth_session_file:
+
+    consumer_secret: lxWCDkDlDJPWAu2vhu6SxbTN5RboujMklxWCDkDl
+    consumer_key: bnDS4RZd8mgeYJndVPBgr6gG2t6yuawMbnDS4RZd8mgeYJndVPBgr6gG2t6yuawMbnDS4RZd8mgeYJndVPBgr6gG2t--
+    auth_session_file: /tmp/tmp0tab11
+
+Subsequent constructions of YahooSession will attempt to use the
+pickled OAuth1Session or create a new one if stale.
 
 Security
 ========
