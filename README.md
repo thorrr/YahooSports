@@ -13,7 +13,7 @@ Verify your app's settings match consumer_secret and consumer_key in auth_keys.t
 
 Verify your app has permissions to the "Fantasy Sports" data API
 
-![My Apps Screenshot](create a project.png?raw=true "My Apps Screenshot")
+![My Apps Screenshot](create a project.png?1000x600 "My Apps Screenshot")
 
 Usage in Python:
 
