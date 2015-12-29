@@ -49,16 +49,16 @@ class YahooSession(object):
                 raise ValueError("Must specify either authFile or "
                                  "both OAUTH_CONSUMER_KEY and OAUTH_SHARED_SECRET")
 
-        session_file = None
+        auth_session_file = None
         if auth_filename:
             auth_keys = read_auth_keys(auth_filename)
             self.consumer_secret = auth_keys['consumer_secret']
             self.consumer_key = auth_keys['consumer_key']
-            session_file = auth_keys.get('session_file')
+            auth_session_file = auth_keys.get('auth_session_file')
 
-        if session_file and isfile(session_file):
+        if auth_session_file and isfile(auth_session_file):
             #load session
-            with open(session_file, 'rb') as pickle_file:
+            with open(auth_session_file, 'rb') as pickle_file:
                 self.session = pickle.load(pickle_file)
                 if self.isLiveSession():
                     return
