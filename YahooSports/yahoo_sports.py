@@ -45,7 +45,7 @@ class YahooSession(object):
             self.consumer_secret = OAUTH_SHARED_SECRET
             self.consumer_key = OAUTH_CONSUMER_KEY
         else:
-            if (OAUTH_CONSUMER_KEY is not None) != (OAUTH_SHARED_SECRET is not None):
+            if OAUTH_CONSUMER_KEY is not None or OAUTH_SHARED_SECRET is not None:
                 raise ValueError("Must specify either authFile or "
                                  "both OAUTH_CONSUMER_KEY and OAUTH_SHARED_SECRET")
 
