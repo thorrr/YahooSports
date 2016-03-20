@@ -60,7 +60,7 @@ class YahooSession(object):
             #load session
             with open(auth_session_file, 'rb') as pickle_file:
                 self.session = pickle.load(pickle_file)
-                if self.isLiveSession():
+                if self.is_live_session():
                     return
         print("saved session is stale.  Getting a full pin from the user")
         self.ask_for_pin_and_get_session()
@@ -96,7 +96,7 @@ class YahooSession(object):
             f.write("consumer_key: {}\n".format(self.consumer_key))
             f.write("auth_session_file: {}\n".format(pickle_file_name))
 
-    def isLiveSession(self):
+    def is_live_session(self):
         response = self.session.get("http://fantasysports.yahooapis.com/fantasy/v2/game/223")
         if response.ok:
             return True
