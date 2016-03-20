@@ -10,7 +10,7 @@ import tempfile
 from rauth import OAuth1Service
 
 
-def read_auth_keys(filename):
+def _read_auth_keys(filename):
     #return dictionary from auth_keys.txt - simple colon delimited format
     prog = re.compile("^(.+?): *(.*)")
     rv = {}
@@ -51,7 +51,7 @@ class YahooSession(object):
 
         auth_session_file = None
         if auth_filename:
-            auth_keys = read_auth_keys(auth_filename)
+            auth_keys = _read_auth_keys(auth_filename)
             self.consumer_secret = auth_keys['consumer_secret']
             self.consumer_key = auth_keys['consumer_key']
             auth_session_file = auth_keys.get('auth_session_file')
