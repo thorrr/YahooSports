@@ -23,15 +23,6 @@ def _read_auth_keys(filename):
     return rv
 
 
-def get_pin_from_user_interaction(request_token, oauthService):
-    auth_url = oauthService.get_authorize_url(request_token)
-    print('Visit this URL in your browser:\n')
-    print(auth_url)
-    # webbrowser.open(auth_url) #this is awesome in windows but annoying in cygwin
-    pin = raw_input('Enter PIN from browser: ')
-    return pin
-
-
 class YahooSession(object):
     urlBase = "http://fantasysports.yahooapis.com/fantasy/v2/"
 
@@ -39,6 +30,9 @@ class YahooSession(object):
         """Use consumer key and shared secret to get an oauth session.  Ask user for PIN if the session is
         not stored in auth_filename or auth_filename is None
         """
+        self.auth_filename = auth_filename
+        self.session = None
+
         if not auth_filename:
             if not (OAUTH_CONSUMER_KEY and OAUTH_SHARED_SECRET):
                 raise ValueError("Must specify both OAUTH_CONSUMER_KEY and OAUTH_SHARED_SECRET")
@@ -60,16 +54,19 @@ class YahooSession(object):
             #load session
             with open(auth_session_file, 'rb') as pickle_file:
                 self.session = pickle.load(pickle_file)
-                if self.is_live_session():
-                    return
-        print("saved session is stale.  Getting a full pin from the user")
-        self.ask_for_pin_and_get_session()
-        if auth_filename:
-            self.save_session(auth_filename)
 
-    def ask_for_pin_and_get_session(self):
-        """reset self.session"""
-        yahoo_oauth_service = OAuth1Service(
+    def check_interactively(self):
+        """if the session isn't alive print instructions for the user to retreive a PIN from"""
+        if self.is_live_session():
+            return
+        # print("saved session is stale.  Getting a full pin from the user")
+        # self.ask_for_pin_and_get_session()
+        print("Enter pin from the following URL:")
+        print(self.auth_url())
+
+    def auth_url(self):
+        """reset self.session and return the auth URL that should be given to enter_pin()"""
+        self.yahoo_oauth_service = OAuth1Service(
             consumer_secret=self.consumer_secret,
             consumer_key=self.consumer_key,
             name='yahoo',
@@ -77,12 +74,19 @@ class YahooSession(object):
             authorize_url='https://api.login.yahoo.com/oauth/v2/request_auth',
             request_token_url='https://api.login.yahoo.com/oauth/v2/get_request_token',
             base_url='https://api.login.yahoo.com/oauth/v2/')
-        request_token, request_token_secret = yahoo_oauth_service.get_request_token(
+        self.request_token, self.request_token_secret = self.yahoo_oauth_service.get_request_token(
             data={'oauth_callback': "oob"})
-        pin = get_pin_from_user_interaction(request_token, yahoo_oauth_service)
+        auth_url = self.yahoo_oauth_service.get_authorize_url(self.request_token)
+        return auth_url
 
-        self.session = yahoo_oauth_service.get_auth_session(
-            request_token, request_token_secret, method='POST', data={'oauth_verifier': pin})
+    def enter_pin(self, pin):
+        """enter pin to get a new valid session"""
+        self.session = self.yahoo_oauth_service.get_auth_session(
+            self.request_token, self.request_token_secret,
+            method='POST', data={'oauth_verifier': pin})
+
+        if self.auth_filename:
+            self.save_session(self.auth_filename)
 
     def save_session(self, auth_filename):
         assert self.session
@@ -97,6 +101,8 @@ class YahooSession(object):
             f.write("auth_session_file: {}\n".format(pickle_file_name))
 
     def is_live_session(self):
+        if not self.session:
+            return False
         response = self.session.get("http://fantasysports.yahooapis.com/fantasy/v2/game/223")
         if response.ok:
             return True

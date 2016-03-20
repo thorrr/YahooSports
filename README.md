@@ -18,8 +18,35 @@ Verify your app has permissions to the "Fantasy Sports" data API
 Usage
 =====
 
+A new interactive session:
+```bash
+>>> from YahooSports import YahooSession
+
+>>> session = YahooSession()
+>>> session.check()
+Enter pin from the following URL:
+https://api.login.yahoo.com/oauth/v2/request_auth?oauth_token=abqfvr4
+>>> session.enter_pin("abc123")
+>>> brett_favre_xml = session.get("game/223/players;player_keys=223.p.1025").text
+>>> print(brett_favre_xml)
+<?xml version="1.0" encoding="UTF-8"?>
+<fantasy_content xml:lang="en-US" yahoo:uri="http://fantasysports.yahooapis.com/fantasy ...
+...
+```
+
+Creating a saved session: 
 ```python
-from YahooSports.yahoo_sports import YahooSession
+from YahooSports import YahooSession
+
+session = YahooSession(auth_filename="auth_keys.txt")
+url = session.auth_url()
+# go to the url and read the pin from the web browser
+session.enter_pin("abc123")
+```
+
+Reusing a saved session: 
+```python
+from YahooSports import YahooSession
 
 session = YahooSession(auth_filename="auth_keys.txt")
 brett_favre_xml = session.get("game/223/players;player_keys=223.p.1025").text
