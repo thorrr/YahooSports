@@ -39,12 +39,15 @@ Creating a saved session:
 from YahooSports import YahooSession
 
 session = YahooSession(auth_filename="auth_keys.txt")
-url = session.auth_url()
-# go to the url and read the pin from the web browser
-session.enter_pin("abc123")
+if not session.is_live_session():
+    url = session.auth_url()
+    print("Go to URL:")
+    print(url)
+    pin = raw_input('Enter PIN from browser: ')
+    session.enter_pin(pin)
 ```
 
-Reusing a saved session: 
+Using a saved session: 
 ```python
 from YahooSports import YahooSession
 
