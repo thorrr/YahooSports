@@ -47,7 +47,7 @@ if not session.is_live_session():
     session.enter_pin(pin)
 ```
 
-Using a saved session: 
+Using a saved session:
 ```python
 from YahooSports import YahooSession
 

@@ -1,11 +1,12 @@
-from __future__ import (absolute_import, division,
-                        print_function, unicode_literals)
+from __future__ import (absolute_import, division, print_function, unicode_literals)
 from builtins import *
 
 from os.path import isfile
 import re
 import pickle
 import tempfile
+import xml.etree.ElementTree as ET
+import xml.dom.minidom
 
 from rauth import OAuth1Service
 
@@ -21,6 +22,10 @@ def _read_auth_keys(filename):
                 k, v = prog.search(line).groups()
                 rv[k] = v
     return rv
+
+def _pretty_xml(xml_string):
+    _xml = xml.dom.minidom.parseString(xml_string)
+    return _xml.toprettyxml(indent="  ", newl="")
 
 
 class YahooSession(object):
@@ -109,7 +114,7 @@ class YahooSession(object):
         else:
             return False
 
-    def get(self, url):
+    def get_raw(self, url):
         """
         return the text value from session.get().  URL is a snippet appended onto session.urlBase
 
@@ -121,3 +126,28 @@ class YahooSession(object):
                 response.status_code))
         else:
             return response
+
+    def get(self, url):
+        """
+        return a pretty-formatted xml string from session.get.  Eliminate the global namespace from
+        the top level element so that element tags are "clean" after parsing with
+        xml.etree.ElementTree or lxml i.e. without the namespace in brackets.
+
+        :returns: pretty-formatted xml string
+        :rtype: utf-8 encoded string
+
+        """
+        raw = self.get_raw(url)
+        root_obj = ET.fromstring(raw)
+
+        #get rid of namespaces to make searching easier
+        for elem in root_obj.getiterator():
+            if not hasattr(elem.tag, 'find'):
+                continue
+            i = elem.tag.find('}')
+            if i >= 0:
+                elem.tag = elem.tag[i + 1:]
+        #convert back to xml string
+        xml_string = ET.tostring(root_obj)
+        return _pretty_xml(xml_string, encoding='utf8', method='xml')
+
