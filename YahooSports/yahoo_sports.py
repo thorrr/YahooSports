@@ -9,6 +9,7 @@ import xml.etree.ElementTree as ET
 import xml.dom.minidom
 
 from rauth import OAuth1Service
+from requests.exceptions import ConnectionError
 
 
 def _read_auth_keys(filename):
@@ -23,6 +24,7 @@ def _read_auth_keys(filename):
                 rv[k] = v
     return rv
 
+
 def _pretty_xml(xml_string):
     _xml = xml.dom.minidom.parseString(xml_string)
     return _xml.toprettyxml(indent="  ", newl="")
@@ -32,8 +34,8 @@ class YahooSession(object):
     urlBase = "http://fantasysports.yahooapis.com/fantasy/v2/"
 
     def __init__(self, auth_filename=None, OAUTH_SHARED_SECRET=None, OAUTH_CONSUMER_KEY=None):
-        """Use consumer key and shared secret to get an oauth session.  Ask user for PIN if the session is
-        not stored in auth_filename or auth_filename is None
+        """Use consumer key and shared secret to get an oauth session.  Ask user for PIN if the
+        session is not stored in auth_filename or auth_filename is None
         """
         self.auth_filename = auth_filename
         self.session = None
@@ -60,15 +62,6 @@ class YahooSession(object):
             with open(auth_session_file, 'rb') as pickle_file:
                 self.session = pickle.load(pickle_file)
 
-    def check_interactively(self):
-        """if the session isn't alive print instructions for the user to retreive a PIN from"""
-        if self.is_live_session():
-            return
-        # print("saved session is stale.  Getting a full pin from the user")
-        # self.ask_for_pin_and_get_session()
-        print("Enter pin from the following URL:")
-        print(self.auth_url())
-
     def auth_url(self):
         """reset self.session and return the auth URL that should be given to enter_pin()"""
         self.yahoo_oauth_service = OAuth1Service(
@@ -85,7 +78,8 @@ class YahooSession(object):
         return auth_url
 
     def enter_pin(self, pin):
-        """enter pin to get a new valid session"""
+        """enter pin to get a new valid session.  save the session if we've specified an
+        auth_filename"""
         self.session = self.yahoo_oauth_service.get_auth_session(
             self.request_token, self.request_token_secret,
             method='POST', data={'oauth_verifier': pin})
@@ -108,11 +102,11 @@ class YahooSession(object):
     def is_live_session(self):
         if not self.session:
             return False
-        response = self.session.get("http://fantasysports.yahooapis.com/fantasy/v2/game/223")
-        if response.ok:
-            return True
-        else:
+        try:
+            response = self.session.get("http://fantasysports.yahooapis.com/fantasy/v2/game/223")
+        except ConnectionError:
             return False
+        return response.ok
 
     def get_raw(self, url):
         """
@@ -125,7 +119,7 @@ class YahooSession(object):
             raise ValueError("response not okay:  response.status_code = {}".format(
                 response.status_code))
         else:
-            return response
+            return response.text
 
     def get(self, url):
         """
@@ -149,5 +143,5 @@ class YahooSession(object):
                 elem.tag = elem.tag[i + 1:]
         #convert back to xml string
         xml_string = ET.tostring(root_obj)
-        return _pretty_xml(xml_string, encoding='utf8', method='xml')
+        return _pretty_xml(xml_string)
 

@@ -1,19 +1,15 @@
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
+from setuptools import setup
 
-config = {
-    'description': 'Yahoo Sports API',
-    'author': 'Jason Bell',
-    'url': '',
-    'download_url': '',
-    'author_email': 'jbellthor@gmail.com',
-    'version': '0.1',
-    'install_requires': ['pytest', 'rauth', 'future'],
-    'packages': ['YahooSports'],
-    'scripts': [],
-    'name': 'YahooSports'
-}
+package_name = "YahooSports"
+install_requires = ['rauth==0.7.2','requests==2.12.4']
+setup(
+    name=package_name,
+    packages=[package_name],
+    install_requires=install_requires,
+    version=open(package_name + "/__version__.py").readlines()[-1].split()[-1].strip("\"'"),
+    description='Yahoo Sports API',
+    author='Jason Bell',
+    author_email='jbellthor@gmail.com',
+    scripts=[],
+)
 
-setup(**config)
