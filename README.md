@@ -27,7 +27,7 @@ A new interactive session:
 Enter pin from the following URL:
 https://api.login.yahoo.com/oauth/v2/request_auth?oauth_token=abqfvr4
 >>> session.enter_pin("abc123")
->>> brett_favre_xml = session.get("game/223/players;player_keys=223.p.1025").text
+>>> brett_favre_xml = session.get("game/223/players;player_keys=223.p.1025")
 >>> print(brett_favre_xml)
 <?xml version="1.0" encoding="UTF-8"?>
 <fantasy_content xml:lang="en-US" yahoo:uri="http://fantasysports.yahooapis.com/fantasy ...
@@ -52,7 +52,7 @@ Using a saved session:
 from YahooSports import YahooSession
 
 session = YahooSession(auth_filename="auth_keys.txt")
-brett_favre_xml = session.get("game/223/players;player_keys=223.p.1025").text
+brett_favre_xml = session.get("game/223/players;player_keys=223.p.1025")
 print(brett_favre_xml)
 ```
 
