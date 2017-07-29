@@ -40,6 +40,7 @@ class YahooSession(object):
         self.auth_filename = auth_filename
         self.session = None
         self.yahoo_oauth_service = None
+        self.request_token = None
         self.request_token_secret = None
 
         if not auth_filename:
