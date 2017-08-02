@@ -119,8 +119,8 @@ class YahooSession(object):
         """
         response = self.session.get(YahooSession.urlBase + url)
         if not response.ok:
-            raise ValueError("response not okay:  response.status_code = {}".format(
-                response.status_code))
+            raise ValueError("response not okay: status_code = {}, text = {}".format(
+                response.status_code, response.text))
         else:
             return response.text
 
