@@ -1,6 +1,7 @@
 from __future__ import (absolute_import, division, print_function, unicode_literals)
 from builtins import *
 
+import sys
 from os.path import isfile
 import re
 import pickle
@@ -10,6 +11,10 @@ import xml.dom.minidom
 
 from rauth import OAuth1Service
 from requests.exceptions import ConnectionError
+
+
+def _eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
 
 
 def _read_auth_keys(filename):
@@ -119,8 +124,13 @@ class YahooSession(object):
         """
         response = self.session.get(YahooSession.urlBase + url)
         if not response.ok:
-            raise ValueError("response not okay: status_code = {}, text = {}".format(
-                response.status_code, response.text))
+            # parse for oath_problem
+            out = re.search(r'oauth_problem="([^"]+)', response.text)
+            if out:
+                oath_problem_code = out.groups()[0]
+            if response.status_code == 401:
+                _eprint("response 401:  oauth error = {}".format(oath_problem_code))
+            response.raise_for_status()
         else:
             return response.text
 
