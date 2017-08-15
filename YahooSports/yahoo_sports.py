@@ -13,6 +13,7 @@ from rauth import OAuth1Service, OAuth2Service
 from requests.exceptions import ConnectionError
 
 from YahooSports.util import eprint
+from YahooSports.exceptions import OAuthExpired, OAuth401Error
 
 
 def _read_auth_keys(filename):
@@ -143,6 +144,8 @@ class YahooSession(object):
         assert hasattr(self.yahoo_oauth_service, 'refresh_token')
         assert self.oauth_version == 2
 
+        eprint("session expired.  refreshing.")
+
         refresh_data = {'refresh_token': "{}".format(self.yahoo_oauth_service.refresh_token),
                         'grant_type': 'refresh_token',
                         'redirect_uri': 'oob'}
@@ -181,18 +184,42 @@ class YahooSession(object):
         return the text value from session.get().  URL is a snippet appended onto session.url_base
 
         example:  session.get("game/nfl/stat_categories")
+
+        Raises:
+            OAuthExpired:   A special 401 error.  session must be refreshed with
+                            .refresh_session() [OAuth v2] or with .auth_url(),
+                            .enter_pin()  [OAuth v1]
+            OAuth401Error:  other OAuth errors as described at
+                            https://developer.yahoo.com/oauth2/guide/errors/#id1
+            requests.exceptions.RequestException:  all other requests errors
         """
         response = self.session.get(YahooSession.url_base + url, **kwargs)
         if not response.ok:
             # parse for oath_problem
             out = re.search(r'oauth_problem="([^"]+)', response.text)
+            oauth_problem_code = None
             if out:
-                oath_problem_code = out.groups()[0]
+                oauth_problem_code = out.groups()[0]
             if response.status_code == 401:
-                eprint("response 401:  oauth error = {}".format(oath_problem_code))
+                if oauth_problem_code == "token_expired":
+                    raise OAuthExpired
+                raise OAuth401Error(oauth_problem_code)
             response.raise_for_status()
         else:
             return response.text
+
+    def get_raw_with_refresh(self, url, **kwargs):
+        """ do get_raw but automatically try refreshing the session token if we get a 401
+        """
+        try:
+            return self.get_raw(url, **kwargs)
+
+        except OAuthExpired as e:
+            if self.oauth_version == 2:
+                self.refresh_session()
+                return self.get_raw(url, **kwargs)
+            else:
+                raise e
 
     def get(self, url, **kwargs):
         """
@@ -204,7 +231,7 @@ class YahooSession(object):
         :rtype: utf-8 encoded string
 
         """
-        raw = self.get_raw(url, **kwargs)
+        raw = self.get_raw_with_refresh(url, **kwargs)
         root_obj = ET.fromstring(raw)
 
         #get rid of namespaces to make searching easier
