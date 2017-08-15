@@ -177,7 +177,7 @@ class YahooSession(object):
         if not self.session:
             return False
         try:
-            response = self.session.get("http://fantasysports.yahooapis.com/fantasy/v2/game/223")
+            response = self.session.get(YahooSession.url_base + "game/223")
         except ConnectionError:
             return False
         return response.ok
