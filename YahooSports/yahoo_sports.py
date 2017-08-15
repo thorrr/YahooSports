@@ -12,9 +12,7 @@ import xml.dom.minidom
 from rauth import OAuth1Service
 from requests.exceptions import ConnectionError
 
-
-def _eprint(*args, **kwargs):
-    print(*args, file=sys.stderr, **kwargs)
+from YahooSports.util import eprint
 
 
 def _read_auth_keys(filename):
@@ -129,7 +127,7 @@ class YahooSession(object):
             if out:
                 oath_problem_code = out.groups()[0]
             if response.status_code == 401:
-                _eprint("response 401:  oauth error = {}".format(oath_problem_code))
+                eprint("response 401:  oauth error = {}".format(oath_problem_code))
             response.raise_for_status()
         else:
             return response.text
