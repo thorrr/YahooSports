@@ -1,7 +1,7 @@
 from __future__ import (absolute_import, division, print_function, unicode_literals)
 from builtins import *
 
-import sys
+import json
 from os.path import isfile
 import re
 import pickle
@@ -9,7 +9,7 @@ import tempfile
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
 
-from rauth import OAuth1Service
+from rauth import OAuth1Service, OAuth2Service
 from requests.exceptions import ConnectionError
 
 from YahooSports.util import eprint
@@ -33,10 +33,32 @@ def _pretty_xml(xml_string):
     return _xml.toprettyxml(indent="  ", newl="")
 
 
-class YahooSession(object):
-    urlBase = "http://fantasysports.yahooapis.com/fantasy/v2/"
+def _yahoo_oauth_response_decoder(json_struct, refresh_token_recipient):
+    """default rauth implementation needs a custom decoder for Yahoo's auth session"""
+    rv = json.loads(json_struct)
+    assert not hasattr(refresh_token_recipient, 'refresh_token')
+    refresh_token_recipient.refresh_token = rv['refresh_token']
+    eprint("refresh_token is {}".format(rv['refresh_token']))
+    return rv
 
-    def __init__(self, auth_filename=None, OAUTH_SHARED_SECRET=None, OAUTH_CONSUMER_KEY=None):
+
+class YahooOAuth1Urls(object):
+    url_get_token = 'https://api.login.yahoo.com/oauth/v2/get_token'
+    url_request_auth = 'https://api.login.yahoo.com/oauth/v2/request_auth'
+    url_get_request_token = 'https://api.login.yahoo.com/oauth/v2/get_request_token'
+
+
+class YahooOAuth2Urls(object):
+    url_get_token = 'https://api.login.yahoo.com/oauth2/get_token'
+    url_request_auth = 'https://api.login.yahoo.com/oauth2/request_auth'
+
+
+class YahooSession(object):
+    url_base = "https://fantasysports.yahooapis.com/fantasy/v2/"
+
+    def __init__(
+            self, auth_filename=None, OAUTH_SHARED_SECRET=None, OAUTH_CONSUMER_KEY=None,
+            oauth_version=1):
         """Use consumer key and shared secret to get an oauth session.  Ask user for PIN if the
         session is not stored in auth_filename or auth_filename is None
         """
@@ -45,6 +67,7 @@ class YahooSession(object):
         self.yahoo_oauth_service = None
         self.request_token = None
         self.request_token_secret = None
+        self.oauth_version = oauth_version
 
         if not auth_filename:
             if not (OAUTH_CONSUMER_KEY and OAUTH_SHARED_SECRET):
@@ -68,39 +91,78 @@ class YahooSession(object):
             with open(auth_session_file, 'rb') as pickle_file:
                 self.session = pickle.load(pickle_file)
 
+    def oath_1_service(self):
+        return OAuth1Service(
+            name='yahoo',
+            consumer_key=self.consumer_key,
+            consumer_secret=self.consumer_secret,
+            base_url=YahooSession.url_base,
+            authorize_url=YahooOAuth1Urls.url_request_auth,
+            access_token_url=YahooOAuth1Urls.url_get_token,
+            request_token_url=YahooOAuth1Urls.url_get_request_token)
+
+    def oath_2_service(self):
+        return OAuth2Service(
+            name="yahoo",
+            client_id=self.consumer_key,
+            client_secret=self.consumer_secret,
+            base_url=YahooSession.url_base,
+            authorize_url=YahooOAuth2Urls.url_request_auth,
+            access_token_url=YahooOAuth2Urls.url_get_token)
+
     def auth_url(self):
         """reset self.session and return the auth URL that should be given to enter_pin()"""
-        self.yahoo_oauth_service = OAuth1Service(
-            consumer_secret=self.consumer_secret,
-            consumer_key=self.consumer_key,
-            name='yahoo',
-            access_token_url='https://api.login.yahoo.com/oauth/v2/get_token',
-            authorize_url='https://api.login.yahoo.com/oauth/v2/request_auth',
-            request_token_url='https://api.login.yahoo.com/oauth/v2/get_request_token',
-            base_url='https://api.login.yahoo.com/oauth/v2/')
-        self.request_token, self.request_token_secret = self.yahoo_oauth_service.get_request_token(
-            data={'oauth_callback': "oob"})
-        auth_url = self.yahoo_oauth_service.get_authorize_url(self.request_token)
+        if self.oauth_version == 1:
+            self.yahoo_oauth_service = self.oath_1_service()
+            self.request_token, self.request_token_secret =\
+                self.yahoo_oauth_service.get_request_token(data={'oauth_callback': "oob"})
+            auth_url = self.yahoo_oauth_service.get_authorize_url(self.request_token)
+        else:
+            self.yahoo_oauth_service = self.oath_2_service()  # pylint: disable=R0204
+            params = {'redirect_uri': 'oob', 'response_type': 'code'}
+            auth_url = self.yahoo_oauth_service.get_authorize_url(**params)
         return auth_url
 
     def enter_pin(self, pin):
         """enter pin to get a new valid session.  save the session if we've specified an
         auth_filename"""
+        if self.oauth_version == 1:
+            self.session = self.yahoo_oauth_service.get_auth_session(
+                self.request_token, self.request_token_secret, method='POST',
+                data={'oauth_verifier': pin})
+        else:
+            data = {'code': "{}".format(pin), 'grant_type': 'authorization_code',
+                    'redirect_uri': 'oob'}
+            self.session = self.yahoo_oauth_service.get_auth_session(
+                data=data,
+                decoder=lambda x: _yahoo_oauth_response_decoder(x, self.yahoo_oauth_service))
+        self.save_session()
+
+    def refresh_session(self):
+        """OAuth2 only.  Refresh session using the long-lived 'refresh_token' from Yahoo."""
+        assert hasattr(self.yahoo_oauth_service, 'refresh_token')
+        assert self.oauth_version == 2
+
+        refresh_data = {'refresh_token': "{}".format(self.yahoo_oauth_service.refresh_token),
+                        'grant_type': 'refresh_token',
+                        'redirect_uri': 'oob'}
         self.session = self.yahoo_oauth_service.get_auth_session(
-            self.request_token, self.request_token_secret,
-            method='POST', data={'oauth_verifier': pin})
+            data=refresh_data,
+            decoder=lambda x: _yahoo_oauth_response_decoder(x, self.yahoo_oauth_service))
+        self.save_session()
 
-        if self.auth_filename:
-            self.save_session(self.auth_filename)
-
-    def save_session(self, auth_filename):
+    def save_session(self):
         assert self.session
+
+        if not self.auth_filename:
+            return
+
         pickle_file = tempfile.NamedTemporaryFile(mode="wb", delete=False)
         pickle_file_name = pickle_file.name
         pickle.dump(self.session, pickle_file)
         pickle_file.close()
 
-        with open(auth_filename, 'w') as f:
+        with open(self.auth_filename, 'w') as f:
             f.write("consumer_secret: {}\n".format(self.consumer_secret))
             f.write("consumer_key: {}\n".format(self.consumer_key))
             f.write("auth_session_file: {}\n".format(pickle_file_name))
@@ -116,11 +178,11 @@ class YahooSession(object):
 
     def get_raw(self, url, **kwargs):
         """
-        return the text value from session.get().  URL is a snippet appended onto session.urlBase
+        return the text value from session.get().  URL is a snippet appended onto session.url_base
 
         example:  session.get("game/nfl/stat_categories")
         """
-        response = self.session.get(YahooSession.urlBase + url, **kwargs)
+        response = self.session.get(YahooSession.url_base + url, **kwargs)
         if not response.ok:
             # parse for oath_problem
             out = re.search(r'oauth_problem="([^"]+)', response.text)
