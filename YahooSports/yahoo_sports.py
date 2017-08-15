@@ -141,8 +141,11 @@ class YahooSession(object):
 
     def refresh_session(self):
         """OAuth2 only.  Refresh session using the long-lived 'refresh_token' from Yahoo."""
-        assert hasattr(self.yahoo_oauth_service, 'refresh_token')
+
         assert self.oauth_version == 2
+
+        if not hasattr(self.yahoo_oauth_service, 'refresh_token'):
+            raise NoRefreshToken()
 
         eprint("session expired.  refreshing.")
 
