@@ -13,7 +13,7 @@ from rauth import OAuth1Service, OAuth2Service
 from requests.exceptions import ConnectionError
 
 from YahooSports.util import eprint
-from YahooSports.exceptions import OAuthExpired, OAuth401Error
+from YahooSports.exceptions import OAuthExpired, OAuth401Error, NoRefreshToken
 
 
 def _read_auth_keys(filename):
