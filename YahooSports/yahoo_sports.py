@@ -59,7 +59,7 @@ class YahooSession(object):
 
     def __init__(
             self, auth_filename=None, OAUTH_SHARED_SECRET=None, OAUTH_CONSUMER_KEY=None,
-            oauth_version=1):
+            oauth_version=2):
         """Use consumer key and shared secret to get an oauth session.  Ask user for PIN if the
         session is not stored in auth_filename or auth_filename is None
         """
