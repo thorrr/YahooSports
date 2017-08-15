@@ -114,13 +114,13 @@ class YahooSession(object):
             return False
         return response.ok
 
-    def get_raw(self, url):
+    def get_raw(self, url, **kwargs):
         """
         return the text value from session.get().  URL is a snippet appended onto session.urlBase
 
         example:  session.get("game/nfl/stat_categories")
         """
-        response = self.session.get(YahooSession.urlBase + url)
+        response = self.session.get(YahooSession.urlBase + url, **kwargs)
         if not response.ok:
             # parse for oath_problem
             out = re.search(r'oauth_problem="([^"]+)', response.text)
@@ -132,7 +132,7 @@ class YahooSession(object):
         else:
             return response.text
 
-    def get(self, url):
+    def get(self, url, **kwargs):
         """
         return a pretty-formatted xml string from session.get.  Eliminate the global namespace from
         the top level element so that element tags are "clean" after parsing with
@@ -142,7 +142,7 @@ class YahooSession(object):
         :rtype: utf-8 encoded string
 
         """
-        raw = self.get_raw(url)
+        raw = self.get_raw(url, **kwargs)
         root_obj = ET.fromstring(raw)
 
         #get rid of namespaces to make searching easier
