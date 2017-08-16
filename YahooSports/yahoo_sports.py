@@ -59,9 +59,15 @@ class YahooSession(object):
 
     def __init__(
             self, auth_filename=None, OAUTH_SHARED_SECRET=None, OAUTH_CONSUMER_KEY=None,
-            oauth_version=2):
+            session_object=None, oauth_version=2):
         """Use consumer key and shared secret to get an oauth session.  Ask user for PIN if the
         session is not stored in auth_filename or auth_filename is None
+
+        Args:
+            session_object: a previously initialized session object of type OAuth1Session or
+                            OAuth2Session.  Accessible from self.session.  These are pickleable and
+                            you can save them along with your shared secret and consumer key.
+
         """
         self.auth_filename = auth_filename
         self.session = None
@@ -88,9 +94,15 @@ class YahooSession(object):
             auth_session_file = auth_keys.get('auth_session_file')
 
         if auth_session_file and isfile(auth_session_file):
-            #load session
+            if session_object is not None:
+                raise ValueError(
+                    "Can't pass in session_object if auth_session_file exists in {}".format(
+                        auth_filename))
+            # load session object from location specified in auth_filename
             with open(auth_session_file, 'rb') as pickle_file:
                 self.session = pickle.load(pickle_file)
+        else:
+            self.session = session_object
 
     def oath_1_service(self):
         return OAuth1Service(
