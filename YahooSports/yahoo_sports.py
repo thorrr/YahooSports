@@ -79,7 +79,7 @@ class YahooOAuth2Urls(object):
     url_request_auth = 'https://api.login.yahoo.com/oauth2/request_auth'
 
 
-class YahooSession(object):
+class YahooConnection(object):
     url_base = "https://fantasysports.yahooapis.com/fantasy/v2/"
 
     def __init__(
@@ -140,7 +140,7 @@ class YahooSession(object):
             name='yahoo',
             consumer_key=self.consumer_key,
             consumer_secret=self.consumer_secret,
-            base_url=YahooSession.url_base,
+            base_url=YahooConnection.url_base,
             authorize_url=YahooOAuth1Urls.url_request_auth,
             access_token_url=YahooOAuth1Urls.url_get_token,
             request_token_url=YahooOAuth1Urls.url_get_request_token)
@@ -153,7 +153,7 @@ class YahooSession(object):
             name="yahoo",
             client_id=self.consumer_key,
             client_secret=self.consumer_secret,
-            base_url=YahooSession.url_base,
+            base_url=YahooConnection.url_base,
             authorize_url=YahooOAuth2Urls.url_request_auth,
             access_token_url=YahooOAuth2Urls.url_get_token)
         return service
@@ -227,7 +227,7 @@ class YahooSession(object):
         if not self.session:
             return False
         try:
-            response = self.session.get(YahooSession.url_base + "game/223")
+            response = self.session.get(YahooConnection.url_base + "game/223")
         except ConnectionError:
             return False
         return response.ok
@@ -246,7 +246,7 @@ class YahooSession(object):
                             https://developer.yahoo.com/oauth2/guide/errors/#id1
             requests.exceptions.RequestException:  all other requests errors
         """
-        response = self.session.get(YahooSession.url_base + url, **kwargs)
+        response = self.session.get(YahooConnection.url_base + url, **kwargs)
         if not response.ok:
             # parse for oath_problem
             out = re.search(r'oauth_problem="([^"]+)', response.text)
