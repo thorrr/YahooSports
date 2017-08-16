@@ -192,7 +192,7 @@ class YahooSession(object):
             OAuthExpired:   A special 401 error.  session must be refreshed with
                             .refresh_session() [OAuth v2] or with .auth_url(),
                             .enter_pin()  [OAuth v1]
-            OAuth401Error:  other OAuth errors as described at
+            OAuth401Error:  other OAuth 401 errors as described at
                             https://developer.yahoo.com/oauth2/guide/errors/#id1
             requests.exceptions.RequestException:  all other requests errors
         """
