@@ -17,7 +17,7 @@ from YahooSports.exceptions import OAuthExpired, OAuth401Error, NoRefreshToken
 
 
 def _read_auth_keys(filename):
-    #return dictionary from auth_keys.txt - simple colon delimited format
+    # return dictionary from auth_keys.txt - simple colon delimited format
     prog = re.compile("^(.+?): *(.*)")
     rv = {}
     with open(filename, 'r') as f:
@@ -287,14 +287,13 @@ class YahooConnection(object):
         raw = self.get_raw_with_refresh(url, **kwargs)
         root_obj = ET.fromstring(raw)
 
-        #get rid of namespaces to make searching easier
+        # get rid of namespaces to make searching easier
         for elem in root_obj.getiterator():
             if not hasattr(elem.tag, 'find'):
                 continue
             i = elem.tag.find('}')
             if i >= 0:
                 elem.tag = elem.tag[i + 1:]
-        #convert back to xml string
+        # convert back to xml string
         xml_string = ET.tostring(root_obj)
         return _pretty_xml(xml_string)
-
