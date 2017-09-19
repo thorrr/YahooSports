@@ -9,7 +9,7 @@ https://developer.yahoo.com/apps/create
 
 Verify your app's settings match consumer_secret and consumer_key in auth_keys.txt:
 
-!["Apps status" screenshot](resources/apps status.png?raw=true "Apps status screenshot")
+!["Apps status" screenshot](resources/apps_status.png?raw=true "Apps status screenshot")
 
 Verify your app has permissions to the "Fantasy Sports" data API
 
