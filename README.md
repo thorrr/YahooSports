@@ -13,7 +13,7 @@ Verify your app's settings match consumer_secret and consumer_key in auth_keys.t
 
 Verify your app has permissions to the "Fantasy Sports" data API
 
-!["Create a project" screenshot](resources/create a project.png?raw=true "Create a project screenshot")
+!["Create a project" screenshot](resources/create_a_project.png?raw=true "Create a project screenshot")
 
 Usage
 =====
