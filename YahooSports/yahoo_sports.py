@@ -270,7 +270,6 @@ class YahooConnection(object):
             )
 
         def check_response(res):
-
             if not res.ok:
                 out = re.search(r'oauth_problem="([^"]+)', res.text)
                 oauth_problem_code = None
@@ -284,12 +283,9 @@ class YahooConnection(object):
                 res.raise_for_status()
             else:
                 return res
-
-
         try:
             res = do_request()
             return YahooResponse(check_response(res))
-
         except OAuthExpired:
             if refresh_token:
                 self.refresh_session()
