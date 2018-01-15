@@ -64,7 +64,7 @@ auth_keys.txt format
 
 
 If the YahooSession constructor is called with an auth_filename
-argument the generated rauth.session.OAuth1Session object will be
+argument the generated rauth.session.OAuth2Session object will be
 pickled and stored in a temporary file, pointed to by
 auth_session_file:
 
@@ -73,7 +73,7 @@ auth_session_file:
     auth_session_file: /tmp/tmp0tab11
 
 Subsequent constructions of YahooSession will attempt to use the
-pickled OAuth1Session or create a new one if stale.
+pickled OAuth2Session or create a new one if stale.
 
 Security
 ========
