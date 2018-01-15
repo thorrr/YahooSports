@@ -20,9 +20,9 @@ Usage
 
 A new interactive session:
 ```bash
->>> from YahooSports import YahooSession
+>>> from YahooSports import YahooConnection
 
->>> session = YahooSession()
+>>> session = YahooConnection()
 >>> session.check()
 Enter pin from the following URL:
 https://api.login.yahoo.com/oauth/v2/request_auth?oauth_token=abqfvr4
@@ -36,9 +36,9 @@ https://api.login.yahoo.com/oauth/v2/request_auth?oauth_token=abqfvr4
 
 Creating a saved session: 
 ```python
-from YahooSports import YahooSession
+from YahooSports import YahooConnection
 
-session = YahooSession(auth_filename="auth_keys.txt")
+session = YahooConnection(auth_filename="auth_keys.txt")
 if not session.is_live_session():
     url = session.auth_url()
     print("Go to URL:")
@@ -49,9 +49,9 @@ if not session.is_live_session():
 
 Using a saved session:
 ```python
-from YahooSports import YahooSession
+from YahooSports import YahooConnection
 
-session = YahooSession(auth_filename="auth_keys.txt")
+session = YahooConnection(auth_filename="auth_keys.txt")
 brett_favre_xml = session.get("game/223/players;player_keys=223.p.1025")
 print(brett_favre_xml)
 ```
