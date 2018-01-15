@@ -82,3 +82,26 @@ Don't check in auth_keys.txt.
 
 The pickled session object is created with restricted permissions in
 /tmp but relying on that for session security may be a bad idea.
+
+
+Development
+===========
+
+Create, activate virtualenv then do:
+
+
+```bash
+pip install -r dev-requirements.txt -r test-requirements.txt
+```
+
+To run tests do:
+
+```bash
+python -m pytest
+```
+
+or
+
+```bash
+python setup.py test
+```
