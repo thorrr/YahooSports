@@ -15,6 +15,32 @@ from requests.exceptions import ConnectionError
 from YahooSports.util import eprint
 from YahooSports.exceptions import OAuthExpired, OAuth401Error, NoRefreshToken
 
+import functools
+
+class YahooResponse(object):
+
+    def __init__(self, response):
+
+        self.response = response
+
+    @property
+    def clean_text(self):
+
+        root_obj = ET.fromstring(self.response.text.encode("utf-8"))
+        #get rid of namespaces to make searching easier
+        for elem in root_obj.getiterator():
+            if not hasattr(elem.tag, 'find'):
+                continue
+            i = elem.tag.find('}')
+            if i >= 0:
+                elem.tag = elem.tag[i + 1:]
+        #convert back to xml string
+        xml_string = ET.tostring(root_obj)
+        return _pretty_xml(xml_string)
+
+    def __getattr__(self, attr):
+        return getattr(self.response, attr)
+
 
 def _read_auth_keys(filename):
     # return dictionary from auth_keys.txt - simple colon delimited format
@@ -56,9 +82,6 @@ class SerializableSession(object):
         self.session = session
         self._refresh_token = None
 
-    def get(self, *args, **kwargs):
-        return self.session.get(*args, **kwargs)
-
     @property
     def refresh_token(self):
         return self._refresh_token
@@ -66,6 +89,11 @@ class SerializableSession(object):
     @refresh_token.setter
     def refresh_token(self, value):
         self._refresh_token = value
+
+    def __getattr__(self, attr):
+        if attr in ["delete", "get", "head", "options", "patch", "post", "put"]:
+            return getattr(self.session, attr)
+        raise AttributeError
 
 
 class YahooOAuth1Urls(object):
@@ -140,7 +168,7 @@ class YahooConnection(object):
             name='yahoo',
             consumer_key=self.consumer_key,
             consumer_secret=self.consumer_secret,
-            base_url=YahooConnection.url_base,
+            base_url=self.url_base,
             authorize_url=YahooOAuth1Urls.url_request_auth,
             access_token_url=YahooOAuth1Urls.url_get_token,
             request_token_url=YahooOAuth1Urls.url_get_request_token)
@@ -153,7 +181,7 @@ class YahooConnection(object):
             name="yahoo",
             client_id=self.consumer_key,
             client_secret=self.consumer_secret,
-            base_url=YahooConnection.url_base,
+            base_url=self.url_base,
             authorize_url=YahooOAuth2Urls.url_request_auth,
             access_token_url=YahooOAuth2Urls.url_get_token)
         return service
@@ -227,73 +255,52 @@ class YahooConnection(object):
         if not self.session:
             return False
         try:
-            response = self.session.get(YahooConnection.url_base + "game/223")
+            response = self.session.get(self.url_base + "game/223")
         except ConnectionError:
             return False
         return response.ok
 
-    def get_raw(self, url, **kwargs):
-        """
-        return the text value from session.get().  URL is a snippet appended onto session.url_base
+    def request(self, location, data=None,
+                method="get", headers=None,
+                refresh_token=False, *args, **kwargs):
 
-        example:  session.get("game/nfl/stat_categories")
+        def do_request():
+            return getattr(self.session, method)(
+                self.url_base + location,
+                data=data,
+                headers=headers,
+                *args,
+                **kwargs
+            )
 
-        Raises:
-            OAuthExpired:   A special 401 error.  session must be refreshed with
-                            .refresh_session() [OAuth v2] or with .auth_url(),
-                            .enter_pin()  [OAuth v1]
-            OAuth401Error:  other OAuth 401 errors as described at
-                            https://developer.yahoo.com/oauth2/guide/errors/#id1
-            requests.exceptions.RequestException:  all other requests errors
-        """
-        response = self.session.get(YahooConnection.url_base + url, **kwargs)
-        if not response.ok:
-            # parse for oath_problem
-            out = re.search(r'oauth_problem="([^"]+)', response.text)
-            oauth_problem_code = None
-            if out:
-                oauth_problem_code = out.groups()[0]
-            if response.status_code == 401:
-                if oauth_problem_code == "token_expired":
-                    raise OAuthExpired
-                raise OAuth401Error(oauth_problem_code)
-            response.raise_for_status()
-        else:
-            return response.text
+        def check_response(res):
 
-    def get_raw_with_refresh(self, url, **kwargs):
-        """ do get_raw but automatically try refreshing the session token if we get a 401
-        """
-        try:
-            return self.get_raw(url, **kwargs)
-
-        except OAuthExpired as e:
-            if self.oauth_version == 2:
-                self.refresh_session()
-                return self.get_raw(url, **kwargs)
+            if not res.ok:
+                out = re.search(r'oauth_problem="([^"]+)', res.text)
+                oauth_problem_code = None
+                if out:
+                    oauth_problem_code = out.groups()[0]
+                if res.status_code == 401:
+                    if oauth_problem_code == "token_expired":
+                            raise OAuthExpired
+                    else:
+                        raise OAuth401Error(oauth_problem_code)
+                res.raise_for_status()
             else:
-                raise e
+                return res
 
-    def get(self, url, **kwargs):
-        """
-        return a pretty-formatted xml string from session.get.  Eliminate the global namespace from
-        the top level element so that element tags are "clean" after parsing with
-        xml.etree.ElementTree or lxml i.e. without the namespace in brackets.
 
-        :returns: pretty-formatted xml string
-        :rtype: utf-8 encoded string
+        try:
+            res = do_request()
+            return YahooResponse(check_response(res))
 
-        """
-        raw = self.get_raw_with_refresh(url, **kwargs)
-        root_obj = ET.fromstring(raw)
+        except OAuthExpired:
+            if refresh_token:
+                self.refresh_session()
+                res = do_request()
+                return YahooResponse(check_response(res))
 
-        # get rid of namespaces to make searching easier
-        for elem in root_obj.getiterator():
-            if not hasattr(elem.tag, 'find'):
-                continue
-            i = elem.tag.find('}')
-            if i >= 0:
-                elem.tag = elem.tag[i + 1:]
-        # convert back to xml string
-        xml_string = ET.tostring(root_obj)
-        return _pretty_xml(xml_string)
+    def __getattr__(self, attr):
+        if attr in ["delete", "get", "head", "options", "patch", "post", "put"]:
+            return functools.partial(self.request, method=attr)
+        raise AttributeError
