@@ -8,6 +8,7 @@ import pickle
 import tempfile
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
+import functools
 
 from rauth import OAuth1Service, OAuth2Service, OAuth1Session, OAuth2Session
 from requests.exceptions import ConnectionError
@@ -15,17 +16,13 @@ from requests.exceptions import ConnectionError
 from YahooSports.util import eprint
 from YahooSports.exceptions import OAuthExpired, OAuth401Error, NoRefreshToken
 
-import functools
 
 class YahooResponse(object):
-
     def __init__(self, response):
-
         self.response = response
 
     @property
     def clean_text(self):
-
         root_obj = ET.fromstring(self.response.text.encode("utf-8"))
         #get rid of namespaces to make searching easier
         for elem in root_obj.getiterator():
@@ -161,7 +158,6 @@ class YahooConnection(object):
             self.yahoo_oauth_service = self.oauth_1_service()
         else:
             self.yahoo_oauth_service = self.oauth_2_service()  # pylint: disable=R0204
-
 
     def oauth_1_service(self):
         service = OAuth1Service(
