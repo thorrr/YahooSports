@@ -10,7 +10,7 @@ import xml.etree.ElementTree as ET
 import xml.dom.minidom
 import functools
 
-from rauth import OAuth1Service, OAuth2Service, OAuth1Session, OAuth2Session
+from rauth import OAuth2Service, OAuth2Session
 from requests.exceptions import ConnectionError
 
 from YahooSports.util import eprint
@@ -71,11 +71,11 @@ def _yahoo_oauth_response_decoder(json_struct, refresh_token_recipient):
 class SerializableSession(object):
     """This is an object with a single method:  'get', which forwards it on to self.session.
 
-    Used instead of the raw OAuth1/2Session object since this has an additional property
+    Used instead of the raw OAuth2Session object since this has an additional property
     'refresh_token'.
     """
     def __init__(self, session):
-        assert isinstance(session, OAuth1Session) or isinstance(session, OAuth2Session)
+        assert isinstance(session, OAuth2Session)
         self.session = session
         self._refresh_token = None
 
@@ -93,12 +93,6 @@ class SerializableSession(object):
         raise AttributeError
 
 
-class YahooOAuth1Urls(object):
-    url_get_token = 'https://api.login.yahoo.com/oauth/v2/get_token'
-    url_request_auth = 'https://api.login.yahoo.com/oauth/v2/request_auth'
-    url_get_request_token = 'https://api.login.yahoo.com/oauth/v2/get_request_token'
-
-
 class YahooOAuth2Urls(object):
     url_get_token = 'https://api.login.yahoo.com/oauth2/get_token'
     url_request_auth = 'https://api.login.yahoo.com/oauth2/request_auth'
@@ -109,7 +103,7 @@ class YahooConnection(object):
 
     def __init__(
             self, auth_filename=None, OAUTH_SHARED_SECRET=None, OAUTH_CONSUMER_KEY=None,
-            session_object=None, oauth_version=2):
+            session_object=None):
         """Use consumer key and shared secret to get an oauth session.  Ask user for PIN if the
         session is not stored in auth_filename or auth_filename is None
 
@@ -124,7 +118,6 @@ class YahooConnection(object):
         self.yahoo_oauth_service = None
         self.request_token = None
         self.request_token_secret = None
-        self.oauth_version = oauth_version
 
         if not auth_filename:
             if not (OAUTH_CONSUMER_KEY and OAUTH_SHARED_SECRET):
@@ -154,23 +147,7 @@ class YahooConnection(object):
         else:
             self.session = session_object
 
-        if oauth_version == 1:
-            self.yahoo_oauth_service = self.oauth_1_service()
-        else:
-            self.yahoo_oauth_service = self.oauth_2_service()  # pylint: disable=R0204
-
-    def oauth_1_service(self):
-        service = OAuth1Service(
-            name='yahoo',
-            consumer_key=self.consumer_key,
-            consumer_secret=self.consumer_secret,
-            base_url=self.url_base,
-            authorize_url=YahooOAuth1Urls.url_request_auth,
-            access_token_url=YahooOAuth1Urls.url_get_token,
-            request_token_url=YahooOAuth1Urls.url_get_request_token)
-        self.request_token, self.request_token_secret = service.get_request_token(
-            data={'oauth_callback': "oob"})
-        return service
+        self.yahoo_oauth_service = self.oauth_2_service()  # pylint: disable=R0204
 
     def oauth_2_service(self):
         service = OAuth2Service(
@@ -184,37 +161,25 @@ class YahooConnection(object):
 
     def auth_url(self):
         """reset self.session and return the auth URL that should be given to enter_pin()"""
-        if self.oauth_version == 1:
-            auth_url = self.yahoo_oauth_service.get_authorize_url(self.request_token)
-        else:
-            params = {'redirect_uri': 'oob', 'response_type': 'code'}
-            auth_url = self.yahoo_oauth_service.get_authorize_url(**params)
+        params = {'redirect_uri': 'oob', 'response_type': 'code'}
+        auth_url = self.yahoo_oauth_service.get_authorize_url(**params)
         return auth_url
 
     def enter_pin(self, pin):
         """enter pin to get a new valid session.  save the session if we've specified an
         auth_filename"""
-        if self.oauth_version == 1:
-            self.session = SerializableSession(
-                self.yahoo_oauth_service.get_auth_session(
-                    self.request_token, self.request_token_secret, method='POST',
-                    data={'oauth_verifier': pin}))
-        else:
-            data = {'code': "{}".format(pin), 'grant_type': 'authorization_code',
-                    'redirect_uri': 'oob'}
-            refresh_token_holder = {}
-            self.session = SerializableSession(
-                self.yahoo_oauth_service.get_auth_session(
-                    data=data,
-                    decoder=lambda x: _yahoo_oauth_response_decoder(x, refresh_token_holder)))
-            self.session.refresh_token = refresh_token_holder['refresh_token']
+        data = {'code': "{}".format(pin), 'grant_type': 'authorization_code',
+                'redirect_uri': 'oob'}
+        refresh_token_holder = {}
+        self.session = SerializableSession(
+            self.yahoo_oauth_service.get_auth_session(
+                data=data,
+                decoder=lambda x: _yahoo_oauth_response_decoder(x, refresh_token_holder)))
+        self.session.refresh_token = refresh_token_holder['refresh_token']
         self.save_session()
 
     def refresh_session(self):
-        """OAuth2 only.  Refresh session using the long-lived 'refresh_token' from Yahoo."""
-
-        assert self.oauth_version == 2
-
+        """Refresh session using the long-lived 'refresh_token' from Yahoo."""
         if not hasattr(self.session, 'refresh_token'):
             raise NoRefreshToken()
 
