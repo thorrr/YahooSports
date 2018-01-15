@@ -1,15 +1,23 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+    Setup file for yahoosports.
+
+    This file was generated with PyScaffold 2.5.7, a tool that easily
+    puts up a scaffold for your new Python project. Learn more under:
+    http://pyscaffold.readthedocs.org/
+"""
+
+import sys
 from setuptools import setup
 
-package_name = "YahooSports"
-install_requires = ['rauth==0.7.2','requests==2.12.4']
-setup(
-    name=package_name,
-    packages=[package_name],
-    install_requires=install_requires,
-    version=open(package_name + "/__version__.py").readlines()[-1].split()[-1].strip("\"'"),
-    description='Yahoo Sports API',
-    author='Jason Bell',
-    author_email='jbellthor@gmail.com',
-    scripts=[],
-)
 
+def setup_package():
+    needs_sphinx = {'build_sphinx', 'upload_docs'}.intersection(sys.argv)
+    sphinx = ['sphinx'] if needs_sphinx else []
+    setup(setup_requires=['six', 'pyscaffold>=2.5a0,<2.6a0'] + sphinx,
+          use_pyscaffold=True)
+
+
+if __name__ == "__main__":
+    setup_package()
