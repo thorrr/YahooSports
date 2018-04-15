@@ -1,6 +1,7 @@
 from __future__ import (absolute_import, division, print_function, unicode_literals)
 from builtins import *
-
+import logging
+logger = logging.getLogger(__name__)
 import json
 from os.path import isfile
 import re
@@ -13,7 +14,6 @@ import functools
 from rauth import OAuth2Service, OAuth2Session
 from requests.exceptions import ConnectionError
 
-from YahooSports.util import eprint
 from YahooSports.exceptions import OAuthExpired, OAuth401Error, NoRefreshToken
 
 
@@ -183,7 +183,7 @@ class YahooConnection(object):
         if not hasattr(self.session, 'refresh_token'):
             raise NoRefreshToken()
 
-        eprint("session expired.  refreshing.")
+        logger.info("session expired.  refreshing.")
 
         refresh_data = {'refresh_token': "{}".format(self.session.refresh_token),
                         'grant_type': 'refresh_token',
